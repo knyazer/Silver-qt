@@ -8,24 +8,33 @@ import QtQuick.Window 2.2
 
 
 ApplicationWindow {
-    property int state: 0
     property string textColor: "white"
     property string green: "greenyellow"
     property string red: "orange"
+    property var videos: [];
 
-    function showVideo(url)
+    function showVideos(urls)
     {
-       console.log("button pressed (" + url + ")");
-       button.visible = false;
-       video.visible = true;
-       video.source = url;
-       videoActions.visible = true;
-       reloadVideo();
+       for (var i = 0; i < urls.length; i++)
+       {
+           var url = urls[i];
+           console.log("button pressed (" + url + ")");
+           button.visible = false;
+           var video = addVideo(url);
+           container.visible = true;
+           video.source = url;
+           videoActions.visible = true;
+           reloadVideo(video);
 
-       g.output(url);
+           videos.push(video);
+
+           g.output(url);
+       }
+
+       updateGrid();
     }
 
-    function reloadVideo()
+    function reloadVideo(video)
     {
         video.seek(1);
         video.pause();
@@ -53,6 +62,46 @@ ApplicationWindow {
         reminder.visible = false;
     }
 
+    function addVideo(url)
+    {
+        var _id = url.replace(/[^a-zA-Z0-9]/g, '');
+        console.log("id:" + _id);
+        var libs =  "import QtQuick 2.12;import QtQuick.Controls 2.12;import QtQuick.Controls.Material 2.12;" +
+                    "import QtQuick.Layouts 1.1;import QtMultimedia 5.6;import QtQuick.Dialogs 1.1;import QtQuick.Window 2.2;";
+        var _component = Qt.createQmlObject(libs + "Video {" +
+                    //"Layout.minimumHeight: 150;" +
+                    //"Layout.minimumWidth: 200;" +
+                    "Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter;" +
+                    "visible: true;" +
+                    "source: '" + url + "';" +
+                    "id: " + _id + ";" +
+                    "MouseArea {" +
+                        "anchors.fill: parent;" +
+                        "onClicked: {" +
+                            "if (playbackState === MediaPlayer.PlayingState) " +
+                                "pause();" +
+                            "else " +
+                                "play();" +
+                            "console.log('mouse clciked');" +
+                        "}" +
+                    "}" +
+                    "Keys.onSpacePressed: playbackState == MediaPlayer.PlayingState ? pause() : play();" +
+                    "onStopped: reloadVideo(this);" +
+                "}", grid, "qml" + _id);
+        return _component;
+    }
+
+    function updateGrid()
+    {
+        var sz = Math.round((root.width - grid.rowSpacing * 4 - 3) / 3);
+        for (var i = 0; i < videos.length; i++)
+        {
+            videos[i].Layout.minimumWidth = sz;
+            videos[i].Layout.minimumHeight = sz;
+        }
+        console.log(sz);
+    }
+
     id: root
     visible: true
     width: 640
@@ -63,6 +112,11 @@ ApplicationWindow {
     Material.theme: Material.Dark // or Material.Light
     Material.accent: Material.BlueGrey
 
+    onWidthChanged: function() {
+        updateGrid();
+    }
+
+    font.capitalization: Font.MixedCase
     ColumnLayout
     {
         anchors.fill: parent
@@ -77,30 +131,25 @@ ApplicationWindow {
             font.pixelSize: 22
         }
 
-        Video {
-
-            visible: false
-            id: video
+        ScrollView {
             Layout.fillHeight: true
             Layout.fillWidth: true
+            ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
+            clip: true
 
-            MouseArea {
-                anchors.fill: parent
-                onClicked: {
-                    if (video.playbackState === MediaPlayer.PlayingState)
-                        video.pause();
-                    else
-                        video.play();
-                }
+            id: container
+            visible: false
+            GridLayout
+            {
+                width: parent.width
+                height: parent.height
+                id: grid
+                rowSpacing: 20;
+                columnSpacing: 20;
+                columns: 3;
+
+
             }
-
-            Keys.onSpacePressed: video.playbackState == MediaPlayer.PlayingState ? video.pause() : video.play()
-            Keys.onLeftPressed: video.seek(video.position - 1000)
-            Keys.onRightPressed: video.seek(video.position + 1000)
-
-            //flushMode: VideoOutput.FirstFrame
-
-            onStopped: reloadVideo()
         }
 
         Button {
@@ -138,16 +187,17 @@ ApplicationWindow {
         id: fileDialog
         title: qsTr("Please choose a video")
         folder: shortcuts.home
-        selectMultiple: false
+        selectMultiple: true
         nameFilters: [ "Video files (*.avi *.mp4)", "All file (*)" ]
         onAccepted: {
-            console.log("You chose: " + fileDialog.fileUrls)
-            showVideo(fileDialog.fileUrls[0])
-            hideReminder()
+            console.log("You chose: " + fileDialog.fileUrls);
+            showVideos(fileDialog.fileUrls);
+            hideReminder();
         }
         onRejected: {
-            console.log("Canceled")
-            showReminder(qsTr("Video is required to continue!"))
+            console.log("Canceled");
+            if (container.visible)
+                showReminder(qsTr("Video is required to continue!"));
         }
     }
 
