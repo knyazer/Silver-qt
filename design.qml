@@ -1,0 +1,379 @@
+import QtQuick 2.12
+import QtQuick.Controls 2.12
+import QtQuick.Controls.Material 2.12
+import QtQuick.Layouts 1.1
+import QtMultimedia 5.6
+import QtQuick.Dialogs 1.1
+import QtQuick.Window 2.2
+
+
+ApplicationWindow {
+    property int state: 0
+    property string textColor: "white"
+    property string green: "greenyellow"
+    property string red: "orange"
+
+    function showVideo(url)
+    {
+       console.log("button pressed (" + url + ")");
+       button.visible = false;
+       video.visible = true;
+       video.source = url;
+       videoActions.visible = true;
+       reloadVideo();
+
+       g.output(url);
+    }
+
+    function reloadVideo()
+    {
+        video.seek(1);
+        video.pause();
+        video.forceActiveFocus();
+    }
+
+    function showReminder(text, urgency=3)
+    {
+        console.log("Reminder shown");
+        reminder.visible = true;
+        reminder.text = text;
+
+        if (urgency === 1)
+            reminder.color = "red";
+        else if (urgency === 2)
+            reminder.color = "yellow";
+        else if (urgency === 3)
+            reminder.color = "white";
+        else
+            reminder.color = "blue";
+    }
+
+    function hideReminder()
+    {
+        reminder.visible = false;
+    }
+
+    id: root
+    visible: true
+    width: 640
+    height: 480
+    minimumHeight: 300
+    minimumWidth: 300
+
+    Material.theme: Material.Dark // or Material.Light
+    Material.accent: Material.BlueGrey
+
+    ColumnLayout
+    {
+        anchors.fill: parent
+        anchors.margins: 20
+
+        Text {
+            id: reminder
+            text: ""
+            visible: false
+            Layout.alignment: Qt.AlignBottom | Qt.AlignHCenter
+            color: textColor
+            font.pixelSize: 22
+        }
+
+        Video {
+
+            visible: false
+            id: video
+            Layout.fillHeight: true
+            Layout.fillWidth: true
+
+            MouseArea {
+                anchors.fill: parent
+                onClicked: {
+                    if (video.playbackState === MediaPlayer.PlayingState)
+                        video.pause();
+                    else
+                        video.play();
+                }
+            }
+
+            Keys.onSpacePressed: video.playbackState == MediaPlayer.PlayingState ? video.pause() : video.play()
+            Keys.onLeftPressed: video.seek(video.position - 1000)
+            Keys.onRightPressed: video.seek(video.position + 1000)
+
+            //flushMode: VideoOutput.FirstFrame
+
+            onStopped: reloadVideo()
+        }
+
+        Button {
+            id: button
+            Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
+            text: qsTr("Choose video")
+
+            onClicked: function()
+            {
+                fileDialog.visible = true
+            }
+        }
+
+        RowLayout {
+            id: videoActions
+            Layout.alignment: Qt.Bottom | Qt.AlignHCenter
+            visible: false
+            spacing: Math.max(Math.min(300, parent.width - 260), 0)
+
+            Button {
+                text: qsTr("Choose another video")
+                onClicked: function() {
+                    fileDialog.open();
+                }
+            }
+
+            Button {
+                text: qsTr("Process")
+                onClicked: popup.open()
+            }
+        }
+    }
+
+    FileDialog {
+        id: fileDialog
+        title: qsTr("Please choose a video")
+        folder: shortcuts.home
+        selectMultiple: false
+        nameFilters: [ "Video files (*.avi *.mp4)", "All file (*)" ]
+        onAccepted: {
+            console.log("You chose: " + fileDialog.fileUrls)
+            showVideo(fileDialog.fileUrls[0])
+            hideReminder()
+        }
+        onRejected: {
+            console.log("Canceled")
+            showReminder(qsTr("Video is required to continue!"))
+        }
+    }
+
+    Popup {
+        id: popup
+        parent: Overlay.overlay
+        modal: true
+
+        x: Math.round((parent.width - width) / 2)
+        y: Math.round((parent.height - height) / 5)
+        padding: 20
+
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
+
+        ColumnLayout
+        {
+            width: parent.width
+            Text {
+                id: title
+                text: qsTr("Information and configuration")
+                Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+                color: textColor
+                font.pixelSize: 22
+                font.bold: true
+            }
+
+            RowLayout
+            {
+                Text {
+                    Layout.alignment: Qt.AlignVCenter
+                    id: fastSliderInfo
+                    text: qsTr("Performance")
+                    color: red
+                }
+
+                Slider {
+                    Layout.alignment: Qt.AlignVCenter
+                    from: 1
+                    value: 5
+                    to: 5
+                    stepSize: 1
+                    snapMode: Slider.SnapOnRelease
+                }
+
+                Text {
+                    Layout.alignment: Qt.AlignVCenter
+                    id: slowSliderInfo
+                    text: qsTr("Accuracy")
+                    color: green
+                }
+            }
+
+            Text {
+                id: processingTime
+                text: qsTr("The video will be processed in ") + g.estimatedProcessingTime + qsTr(" seconds")
+                Layout.alignment: Qt.AlignLeft
+                color: textColor
+            }
+
+            RowLayout {
+                Layout.alignment: Qt.AlignHCenter
+                Layout.fillWidth: true
+                Button {
+                    id: popupCancelButton
+                    text: qsTr("Cancel")
+
+                    onClicked: function()
+                    {
+                        popup.close()
+                    }
+                }
+
+                Button {
+                    id: popupOkButton
+                    text: qsTr("Ok")
+
+                    onClicked: function()
+                    {
+                        g.process()
+                    }
+                }
+            }
+        }
+    }
+
+    Popup {
+        id: settings
+
+        modal: true
+
+        parent: this
+
+        x: Math.round((parent.width - width) / 2)
+        y: Math.round((parent.height - height) / 2)
+        padding: 20
+
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
+
+        ColumnLayout {
+            Text {
+                text: qsTr("Global settings")
+                Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+                color: textColor
+                font.pixelSize: 22
+                font.bold: true
+            }
+
+            Text {
+                text: qsTr("Language")
+                Layout.alignment: Qt.AlignHCenter
+                color: textColor
+                font.pixelSize: 18
+            }
+
+            RowLayout {
+                Layout.alignment: Qt.AlignHCenter
+
+                Button {
+                    id: englishButton
+                    text: "English"
+                    down: true
+
+                    onClicked: function()
+                    {
+                        if (down === false)
+                        {
+                            console.log("set lang to english");
+                            down = true
+                            russianButton.down = false
+                        }
+                        else
+                        {
+                            console.log("already checked")
+                        }
+                    }
+                }
+
+                Button {
+                    id: russianButton
+                    text: "Русский"
+
+                    onClicked: function()
+                    {
+                        if (down === false)
+                        {
+                            console.log("set lang to russian");
+                            //down = true
+                            //englishButton.down = false
+                        }
+                        else
+                        {
+                            console.log("already checked")
+                        }
+                    }
+                }
+            }
+
+            Text {
+                text: qsTr("Color theme")
+                Layout.alignment: Qt.AlignHCenter
+                color: textColor
+                font.pixelSize: 18
+            }
+
+            RowLayout {
+                Layout.alignment: Qt.AlignHCenter
+
+                Button {
+                    id: lightButton
+                    text: qsTr("Light")
+
+                    onClicked: function()
+                    {
+                        if (down === false)
+                        {
+                            console.log("set theme to light");
+                            down = true
+                            darkButton.down = false
+
+                            root.Material.theme = Material.light
+                            root.textColor = "black"
+                        }
+                        else
+                        {
+                            console.log("already checked")
+                        }
+                    }
+                }
+
+                Button {
+                    id: darkButton
+                    text: qsTr("Dark")
+                    down: true
+
+                    onClicked: function()
+                    {
+                        if (down === false)
+                        {
+                            console.log("set theme to dark");
+                            down = true
+                            lightButton.down = false
+
+                            root.Material.theme = Material.Dark
+                            root.textColor = "white"
+                        }
+                        else
+                        {
+                            console.log("already checked")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    Image {
+        source: "settings.png"
+        width: 50
+        height: 50
+        x: 3
+        y: 3
+        MouseArea {
+            anchors.fill: parent
+            onClicked: {
+               settings.open()
+            }
+        }
+    }
+}
