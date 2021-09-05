@@ -29,7 +29,7 @@ ApplicationWindow {
            var url = urls[i];
            videoUrls.push(url);
 
-           if (videos.length < 21)
+           if (videos.length < 40)
            {
                var res = addVideo(url);
                reloadVideo(res[0]);
