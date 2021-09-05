@@ -46,7 +46,7 @@ app.setOrganizationName("K")
 app.setOrganizationDomain("K")
 
 view = QQmlApplicationEngine()
-url = QUrl("design.qml")
+url = QUrl("main.qml")
 
 g = App()
 context = view.rootContext()
