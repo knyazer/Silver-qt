@@ -38,8 +38,6 @@ ApplicationWindow {
            }
        }
 
-       console.log(videos.length, videoUrls.length);
-
        updateGrid();
     }
 
@@ -52,7 +50,6 @@ ApplicationWindow {
 
     function showReminder(text, urgency=3)
     {
-        console.log("Reminder shown");
         reminder.visible = true;
         reminder.text = text;
 
@@ -73,7 +70,6 @@ ApplicationWindow {
 
     function destroyVideo(obj)
     {
-        console.log("Destroy!");
         for (var i = 0; i < videos.length; i++)
         {
             if (videos[i] === obj)
@@ -92,7 +88,6 @@ ApplicationWindow {
     function addVideo(url)
     {
         var _id = url.replace(/[^a-zA-Z0-9]/g, '');
-        console.log("id:" + _id);
         var libs =  "import QtQuick 2.12;import QtQuick.Controls 2.12;import QtQuick.Controls.Material 2.12;" +
                     "import QtQuick.Layouts 1.1;import QtMultimedia 5.6;import QtQuick.Dialogs 1.1;import QtQuick.Window 2.2;";
         var _component = Qt.createQmlObject(libs + "Video {" +
@@ -108,7 +103,6 @@ ApplicationWindow {
                                 "pause();" +
                             "else " +
                                 "play();" +
-                            "console.log('mouse clciked');" +
                         "}" +
                     "}" +
                     "Image {source: 'trash.png'; width: 25; height: 25; x: parent.width - 28; y: 4; MouseArea{propagateComposedEvents:true;anchors.fill:parent;onClicked:{destroyVideo(parent.parent);}}}" +
@@ -139,8 +133,6 @@ ApplicationWindow {
             videoTexts[i].font.pixelSize = Math.max(sz / 10, 18);
 
         }
-
-        console.log(sz);
     }
 
     function updateTime()
@@ -151,7 +143,6 @@ ApplicationWindow {
         len /= Math.max(videos.length, 1);
 
         var total = len * videoUrls.length;
-        console.log("len" + len);
 
         var estim = g.estimatedProcessingTime(total, 1 + accuracySlider.to - accuracySlider.value);
         var measure = "seconds";
@@ -290,12 +281,10 @@ ApplicationWindow {
         selectMultiple: true
         nameFilters: [ "Video files (*.avi *.mp4)", "All file (*)" ]
         onAccepted: {
-            console.log("Your choice is: " + fileUrls);
             showVideos(fileUrls);
             hideReminder();
         }
         onRejected: {
-            console.log("Canceled");
             if (videos.length != 0)
                 showReminder(qsTr("Video is required to continue!"));
             else
@@ -314,7 +303,6 @@ ApplicationWindow {
             showVideos(g.traverse(fileUrls));
         }
         onRejected: {
-            console.log("Canceled");
             if (container.visible)
                 showReminder(qsTr("Video is required to continue!"));
         }
