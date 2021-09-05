@@ -10,7 +10,6 @@ import csv
 
 os.environ["QT_QUICK_CONTROLS_STYLE"] = "Material"
 
-
 class App(QObject):
     @QtCore.pyqtSlot(float, float, result=int)
     def estimatedProcessingTime(self, framesN, perf):
