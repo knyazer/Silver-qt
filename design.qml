@@ -12,24 +12,33 @@ ApplicationWindow {
     property string green: "greenyellow"
     property string red: "orange"
     property var videos: [];
+    property var videoUrls: [];
+    property var videoTexts: [];
+    property var results: [];
 
     function showVideos(urls)
     {
+        button.visible = false;
+        container.visible = true;
+        videoActions.visible = true;
+        settingsButton.visible = false;
+        folderSwitch.visible = false;
+        switchText.visible = false;
        for (var i = 0; i < urls.length; i++)
        {
            var url = urls[i];
-           console.log("button pressed (" + url + ")");
-           button.visible = false;
-           var video = addVideo(url);
-           container.visible = true;
-           video.source = url;
-           videoActions.visible = true;
-           reloadVideo(video);
+           videoUrls.push(url);
 
-           videos.push(video);
-
-           g.output(url);
+           if (videos.length < 21)
+           {
+               var res = addVideo(url);
+               reloadVideo(res[0]);
+               videos.push(res[0]);
+               videoTexts.push(res[1]);
+           }
        }
+
+       console.log(videos.length, videoUrls.length);
 
        updateGrid();
     }
@@ -62,6 +71,24 @@ ApplicationWindow {
         reminder.visible = false;
     }
 
+    function destroyVideo(obj)
+    {
+        console.log("Destroy!");
+        for (var i = 0; i < videos.length; i++)
+        {
+            if (videos[i] === obj)
+            {
+                videos[i].destroy(30);
+                videos.splice(i, 1);
+                videoUrls.splice(i, 1);
+                videoTexts.splice(i, 1);
+                break;
+            }
+        }
+
+        updateGrid();
+    }
+
     function addVideo(url)
     {
         var _id = url.replace(/[^a-zA-Z0-9]/g, '');
@@ -69,13 +96,12 @@ ApplicationWindow {
         var libs =  "import QtQuick 2.12;import QtQuick.Controls 2.12;import QtQuick.Controls.Material 2.12;" +
                     "import QtQuick.Layouts 1.1;import QtMultimedia 5.6;import QtQuick.Dialogs 1.1;import QtQuick.Window 2.2;";
         var _component = Qt.createQmlObject(libs + "Video {" +
-                    //"Layout.minimumHeight: 150;" +
-                    //"Layout.minimumWidth: 200;" +
                     "Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter;" +
                     "visible: true;" +
                     "source: '" + url + "';" +
                     "id: " + _id + ";" +
                     "MouseArea {" +
+                        "propagateComposedEvents: true;" +
                         "anchors.fill: parent;" +
                         "onClicked: {" +
                             "if (playbackState === MediaPlayer.PlayingState) " +
@@ -85,21 +111,58 @@ ApplicationWindow {
                             "console.log('mouse clciked');" +
                         "}" +
                     "}" +
+                    "Image {source: 'trash.png'; width: 25; height: 25; x: parent.width - 28; y: 4; MouseArea{propagateComposedEvents:true;anchors.fill:parent;onClicked:{destroyVideo(parent.parent);}}}" +
                     "Keys.onSpacePressed: playbackState == MediaPlayer.PlayingState ? pause() : play();" +
                     "onStopped: reloadVideo(this);" +
                 "}", grid, "qml" + _id);
-        return _component;
+       var _text = Qt.createQmlObject(libs + "Text {text: ''; x: 4; y: 4; color: 'red';}", _component, "qml_text" + _id);
+        return [_component, _text];
     }
 
     function updateGrid()
     {
-        var sz = Math.round((root.width - grid.rowSpacing * 4 - 3) / 3);
+        if (videos.length > 3)
+            container.ScrollBar.vertical.policy = ScrollBar.AlwaysOn;
+
+        var sz = 90;
+        if (videos.length >= 3)
+            sz = Math.round((root.width - grid.rowSpacing * 5 - 3) / 3);
+        else if (videos.length == 2)
+            sz = Math.round((root.width - grid.rowSpacing * 4 - 3) / 2);
+        else if (videos.length == 1)
+            sz = Math.round(root.width - grid.rowSpacing * 3 - 3);
+
         for (var i = 0; i < videos.length; i++)
         {
             videos[i].Layout.minimumWidth = sz;
             videos[i].Layout.minimumHeight = sz;
+            videoTexts[i].font.pixelSize = Math.max(sz / 10, 18);
+
         }
+
         console.log(sz);
+    }
+
+    function updateTime()
+    {
+        var len = 0;
+        for (var i = 0; i < videos.length; i++)
+            len += videos[i].duration / 16;
+        len /= Math.max(videos.length, 1);
+
+        var total = len * videoUrls.length;
+        console.log("len" + len);
+
+        var estim = g.estimatedProcessingTime(total, 1 + accuracySlider.to - accuracySlider.value);
+        var measure = "seconds";
+
+        if (estim > 90)
+        {
+            estim = Math.round(estim / 60);
+            measure = "minutes";
+        }
+
+        processingTime.text = qsTr("Dataset will be processed in ") + estim + qsTr(" " + measure);
     }
 
     id: root
@@ -107,7 +170,7 @@ ApplicationWindow {
     width: 640
     height: 480
     minimumHeight: 300
-    minimumWidth: 300
+    minimumWidth: 450
 
     Material.theme: Material.Dark // or Material.Light
     Material.accent: Material.BlueGrey
@@ -147,20 +210,35 @@ ApplicationWindow {
                 rowSpacing: 20;
                 columnSpacing: 20;
                 columns: 3;
-
-
             }
         }
 
         Button {
             id: button
-            Layout.alignment: Qt.AlignVCenter | Qt.AlignHCenter
-            text: qsTr("Choose video")
+            Layout.alignment: Qt.AlignBottom | Qt.AlignHCenter
+            text: qsTr("Upload videos")
 
             onClicked: function()
             {
-                fileDialog.visible = true
+                if (folderSwitch.position < 0.5)
+                    fileDialog.open();
+                else
+                    folderDialog.open();
             }
+        }
+
+        Text {
+            id: switchText
+            text: "Traverse entire folders"
+            font.pixelSize: 18
+            height: 20
+            color: textColor
+            Layout.alignment: Qt.AlignBottom | Qt.AlignHCenter
+        }
+
+        Switch {
+            id: folderSwitch
+            Layout.alignment: Qt.AlignTop | Qt.AlignHCenter
         }
 
         RowLayout {
@@ -170,11 +248,33 @@ ApplicationWindow {
             spacing: Math.max(Math.min(300, parent.width - 260), 0)
 
             Button {
-                text: qsTr("Choose another video")
+                Layout.preferredWidth: 140;
+                text: qsTr("Add more videos")
                 onClicked: function() {
-                    fileDialog.open();
+                    if (secondFolderSwitch.position < 0.5)
+                        fileDialog.open();
+                    else
+                        folderDialog.open();
+                }
+
+                Switch {
+                    id: secondFolderSwitch
+                    x: parent.width + 5
+
+                    onClicked: function() {
+                        var TEXT_1 = qsTr("Add more videos"),
+                            TEXT_2 = qsTr("Add more folders");
+
+                        if (parent.text === TEXT_1)
+                            parent.text = TEXT_2;
+                        else
+                            parent.text = TEXT_1;
+
+                        this.x = parent.width + 5;
+                    }
                 }
             }
+
 
             Button {
                 text: qsTr("Process")
@@ -185,14 +285,33 @@ ApplicationWindow {
 
     FileDialog {
         id: fileDialog
-        title: qsTr("Please choose a video")
+        title: qsTr("Choose videos")
         folder: shortcuts.home
         selectMultiple: true
         nameFilters: [ "Video files (*.avi *.mp4)", "All file (*)" ]
         onAccepted: {
-            console.log("You chose: " + fileDialog.fileUrls);
-            showVideos(fileDialog.fileUrls);
+            console.log("Your choice is: " + fileUrls);
+            showVideos(fileUrls);
             hideReminder();
+        }
+        onRejected: {
+            console.log("Canceled");
+            if (videos.length != 0)
+                showReminder(qsTr("Video is required to continue!"));
+            else
+                hideReminder();
+        }
+    }
+
+    FileDialog {
+        id: folderDialog
+        title: qsTr("Choose folders to traverse")
+        folder: shortcuts.home
+        selectMultiple: false
+        selectFolder: true
+        onAccepted: {
+            console.log("Your choice is: " + fileUrls);
+            showVideos(g.traverse(fileUrls));
         }
         onRejected: {
             console.log("Canceled");
@@ -214,6 +333,7 @@ ApplicationWindow {
 
         ColumnLayout
         {
+
             width: parent.width
             Text {
                 id: title
@@ -234,12 +354,15 @@ ApplicationWindow {
                 }
 
                 Slider {
+                    id: accuracySlider
                     Layout.alignment: Qt.AlignVCenter
                     from: 1
-                    value: 5
-                    to: 5
+                    value: 10
+                    to: 10
                     stepSize: 1
                     snapMode: Slider.SnapOnRelease
+                    onValueChanged: updateTime()
+                    onVisibleChanged: updateTime()
                 }
 
                 Text {
@@ -252,9 +375,65 @@ ApplicationWindow {
 
             Text {
                 id: processingTime
-                text: qsTr("The video will be processed in ") + g.estimatedProcessingTime + qsTr(" seconds")
-                Layout.alignment: Qt.AlignLeft
+                Layout.alignment: Qt.AlignHCenter
                 color: textColor
+            }
+
+
+            RowLayout {
+                Layout.alignment: Qt.AlignHCenter
+
+                CheckBox {
+                    id: dumpToFile
+                    checked: true
+                    text: "Dump results"
+                    onCheckStateChanged: function()
+                    {
+                        if (fileNameField.readOnly === true)
+                        {
+                            fileNameField.readOnly = false;
+                            fileNameField.font.italic = false;
+                            fileNameField.color = textColor;
+                        }
+                        else
+                        {
+                            fileNameField.readOnly = true;
+                            fileNameField.font.italic = true;
+                            fileNameField.color = '#888';
+                        }
+                    }
+                }
+                TextField {
+                    id: fileNameField
+                    text: "results.csv"
+                    readOnly: false
+                    color: textColor
+                }
+            }
+
+            ProgressBar
+            {
+                id: progress
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignHCenter
+                visible: false
+                indeterminate: true
+                from: 0
+                to: 1
+            }
+
+            Timer {
+                id: timer
+                function setTimeout(cb, delayTime) {
+                    timer.interval = delayTime;
+                    timer.repeat = false;
+                    timer.triggered.connect(cb);
+                    timer.triggered.connect(function release () {
+                        timer.triggered.disconnect(cb); // This is important
+                        timer.triggered.disconnect(release); // This is important as well
+                    });
+                    timer.start();
+                }
             }
 
             RowLayout {
@@ -276,7 +455,18 @@ ApplicationWindow {
 
                     onClicked: function()
                     {
-                        g.process()
+                        progress.visible = true;
+                        down = false;
+
+                        timer.setTimeout(function() {
+                            results = g.process(videoUrls, dumpToFile.checked, fileNameField.text);
+
+                            for (var i = 0; i < videoTexts.length; i++)
+                                videoTexts[i].text = results[i];
+
+                            progress.visible = false;
+                            popup.close();
+                        }, 100);
                     }
                 }
             }
@@ -374,11 +564,12 @@ ApplicationWindow {
                         if (down === false)
                         {
                             console.log("set theme to light");
-                            down = true
-                            darkButton.down = false
+                            down = true;
+                            darkButton.down = false;
 
-                            root.Material.theme = Material.light
-                            root.textColor = "black"
+                            root.Material.theme = Material.light;
+                            root.textColor = "black";
+                            settingsButton.source = "settings.png";
                         }
                         else
                         {
@@ -397,11 +588,12 @@ ApplicationWindow {
                         if (down === false)
                         {
                             console.log("set theme to dark");
-                            down = true
-                            lightButton.down = false
+                            down = true;
+                            lightButton.down = false;
 
-                            root.Material.theme = Material.Dark
-                            root.textColor = "white"
+                            root.Material.theme = Material.Dark;
+                            root.textColor = "white";
+                            settingsButton.source = "white-settings.png";
                         }
                         else
                         {
@@ -414,7 +606,8 @@ ApplicationWindow {
     }
 
     Image {
-        source: "settings.png"
+        id: settingsButton
+        source: "white-settings.png"
         width: 50
         height: 50
         x: 3
