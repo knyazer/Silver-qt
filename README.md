@@ -11,4 +11,7 @@ Application for Russian Sign Language recognition
 ```
 pip3 install -r requirements.txt
 ```
-If this does not work, report incident and try to install PyQt5.3+ with additional multimedia part on your own.
+Install PyQt5.3+ with additional multimedia part on your own, as usually multimedia does not provided in GPL Qt, eventhough it should be there. On linux you can simply install it using package manager, like so:
+```
+sudo apt install -y qt5-default pyqt5-devlibqt5multimedia5-plugins qml-module-qtmultimedia qml-module-qt-labs-settings libqt5multimedia5-plugins
+```
