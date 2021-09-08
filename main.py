@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtQml import QQmlApplicationEngine
 from PyQt5.QtCore import QUrl, QObject
 from PyQt5 import QtCore
-from predict import predict
+from predict import VID_FORMATS, predict
 import math
 import glob
 import os
@@ -37,8 +37,9 @@ class App(QObject):
     @QtCore.pyqtSlot(str, result=list)
     def traverse(self, url):
         filenames = []
-        for filename in glob.iglob(url[7:] + "/**/*.mp4", recursive=True):
-            filenames.append(filename)
+        for format in VID_FORMATS:
+            for filename in glob.iglob(url[7:] + f"/**/*.{format}", recursive=True):
+                filenames.append(filename)
         return filenames
 
 app = QApplication(["RSL silver"])
@@ -46,7 +47,7 @@ app.setOrganizationName("K")
 app.setOrganizationDomain("K")
 
 view = QQmlApplicationEngine()
-url = QUrl("main.qml")
+url = QUrl("src/qml/main.qml")
 
 g = App()
 context = view.rootContext()
