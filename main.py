@@ -42,15 +42,18 @@ class App(QObject):
             try:
                 predictions.append(predict(url[7:], step=self.step))
             except Exception as e:
-                predictions.append(-1)
+                predictions.append((-1, -1))
 
         if doDump:
             with open(fileName, 'w', encoding='UTF8') as f:
                 writer = csv.writer(f)
-                writer.writerow(['path', 'result'])
+                writer.writerow(['path', 'label', 'label_txt'])
 
                 for url, pred in zip(urls, predictions):
-                    writer.writerow([url, pred])
+                    writer.writerow([url, pred[0], pred[1]])
+
+        for i in range(len(predictions)):
+            predictions[i] = predictions[i][1]
 
         return predictions
 

@@ -299,8 +299,21 @@ def latents2pred(latents):
     return np.argmax(pred)
 
 
+labels = []
+with open("src/labels.txt", "r") as f:
+    s = f.read()
+    for line in s.split("\n"):
+        labels.append(line.split(" ")[0])
+
+def toLabel(num):
+    try:
+        return labels[num]
+    except Exception as e:
+        return num
+
 def predict(url, step=2):
     seq = vid2seq_mod(url)
     crops = seq2crops(seq, step=step)
     latents = crops2latents(crops)
-    return str(latents2pred(latents))
+    num = int(latents2pred(latents))
+    return num, toLabel(num)
