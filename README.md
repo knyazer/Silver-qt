@@ -1,7 +1,7 @@
 # Silver-qt
 Application for Russian Sign Language recognition
 
-### Technology
+### Technologies
 + PyQT5+QML and ONNX models for inference;
 + Material style;
 + Dark/Light color themes
