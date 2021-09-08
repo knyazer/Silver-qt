@@ -7,8 +7,23 @@ import math
 import glob
 import os
 import csv
+import cv2 as cv
+import numpy as np
 
 os.environ["QT_QUICK_CONTROLS_STYLE"] = "Material"
+
+def make_thumbnail(inp, out):
+    cap = cv.VideoCapture(inp)
+    _, img = cap.read()
+    if _ == False:
+        img = np.zeros((100, 100, 3), dtype=np.uint8)
+    else:
+        f = 480.0 / max(img.shape[0], img.shape[1])
+        img = cv.resize(img, None, fx=f, fy=f)
+
+    cv.imwrite(out, img)
+    cap.release()
+
 
 class App(QObject):
     @QtCore.pyqtSlot(float, float, result=int)
@@ -22,7 +37,12 @@ class App(QObject):
 
     @QtCore.pyqtSlot(list, bool, str, result=list)
     def process(self, urls, doDump, fileName):
-        predictions = [predict(url, step=self.step) for url in urls]
+        predictions = []
+        for url in urls:
+            try:
+                predictions.append(predict(url[7:], step=self.step))
+            except Exception as e:
+                predictions.append(-1)
 
         if doDump:
             with open(fileName, 'w', encoding='UTF8') as f:
@@ -39,10 +59,23 @@ class App(QObject):
         filenames = []
         for format in VID_FORMATS:
             for filename in glob.iglob(url[7:] + f"/**/*.{format}", recursive=True):
-                filenames.append(filename)
+                filenames.append('file://' + filename)
         return filenames
 
-app = QApplication(["RSL silver"])
+    @QtCore.pyqtProperty(bool)
+    def QtMultimedia(self):
+        try:
+            from PyQt5 import QtMultimedia
+            return True
+        except ImportError as e:
+            return False
+
+    @QtCore.pyqtSlot(str, str)
+    def makeThumbnail(self, video_url, image_path):
+        return make_thumbnail(video_url[7:], 'temp/' + image_path)
+
+
+app = QApplication(["Silver"])
 app.setOrganizationName("K")
 app.setOrganizationDomain("K")
 
