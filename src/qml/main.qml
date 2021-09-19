@@ -13,7 +13,6 @@
     property var videos: [];
     property var videoUrls: [];
     property var videoTexts: [];
-    property var results: [];
 
     function showVideos(urls)
     {
@@ -429,23 +428,8 @@
                 Layout.fillWidth: true
                 Layout.alignment: Qt.AlignHCenter
                 visible: false
-                indeterminate: true
                 from: 0
                 to: 1
-            }
-
-            Timer {
-                id: timer
-                function setTimeout(cb, delayTime) {
-                    timer.interval = delayTime;
-                    timer.repeat = false;
-                    timer.triggered.connect(cb);
-                    timer.triggered.connect(function release () {
-                        timer.triggered.disconnect(cb); // This is important
-                        timer.triggered.disconnect(release); // This is important as well
-                    });
-                    timer.start();
-                }
             }
 
             RowLayout {
@@ -457,7 +441,10 @@
 
                     onClicked: function()
                     {
-                        popup.close()
+                        g.stopProcessing();
+
+                        progress.visible = false;
+                        popup.close();
                     }
                 }
 
@@ -468,17 +455,8 @@
                     onClicked: function()
                     {
                         progress.visible = true;
-                        down = false;
 
-                        timer.setTimeout(function() {
-                            results = g.process(videoUrls, dumpToFile.checked, fileNameField.text);
-
-                            for (var i = 0; i < videoTexts.length; i++)
-                                videoTexts[i].text = results[i];
-
-                            progress.visible = false;
-                            popup.close();
-                        }, 100);
+                        g.process(videoUrls, dumpToFile.checked, fileNameField.text);
                     }
                 }
             }
@@ -646,4 +624,24 @@
             }
         }
     }
+
+    Connections {
+        target: g
+
+        // Finished signal handler
+        onFinished:
+        {
+            for (var i = 0; i < videoTexts.length; i++)
+                videoTexts[i].text = results[i];
+
+            progress.visible = false;
+            popup.close();
+        }
+
+        // Progress signal handler
+        onProgress:
+        {
+            progress.value = fraction;
+        }
     }
+}
