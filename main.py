@@ -9,6 +9,7 @@ import os
 import csv
 import cv2 as cv
 import numpy as np
+import time
 
 os.environ["QT_QUICK_CONTROLS_STYLE"] = "Material"
 
@@ -41,6 +42,8 @@ class Predictor(QRunnable):
         global PREDICTOR_EXIT
         predictions = []
         i = 0
+        beg = time.time()
+        passed = 0
         for url in self.urls:
             try:
                 predictions.append(predict(url[7:], step=self.step))
@@ -52,7 +55,20 @@ class Predictor(QRunnable):
                 return
 
             i += 1
-            self.progress.emit(float(i) / float(len(self.urls)))
+            passed = time.time() - beg
+            if i > 1:
+                k = 0.7 + (float(i) / float(len(self.urls))) * 0.3
+                leftSecs = int(round(((passed / i) * (len(self.urls) - i))) * k + leftSecs * (1 - k))
+            else:
+                leftSecs = int(round(0.8 * (passed / i) * (len(self.urls) - i)))
+
+            leftText = ""
+            if leftSecs < 90:
+                leftText = f"{leftSecs} seconds left"
+            else:
+                leftText = f"{leftSecs//60} minutes left"
+
+            self.progress.emit(float(i) / float(len(self.urls)), leftText)
 
         if self.doDump:
             with open(self.fileName, 'w', encoding='UTF8') as f:
@@ -83,7 +99,7 @@ class App(QObject):
         self.threadpool = QThreadPool()
 
     finished = pyqtSignal(list, arguments=['results'])
-    progress = pyqtSignal(float, arguments=['fraction'])
+    progress = pyqtSignal([float, str], arguments=['fraction', 'timeLeftText'])
 
     @QtCore.pyqtSlot(float, float, result=int)
     def estimatedProcessingTime(self, framesN, perf):
@@ -96,7 +112,7 @@ class App(QObject):
 
     @QtCore.pyqtSlot(list, bool, str, result=list)
     def process(self, urls, doDump, fileName):
-        self.progress.emit(0)
+        self.progress.emit(0, "Processing begins")
 
         predictor = Predictor(urls, doDump, fileName, self.step, self.finished, self.progress)
         self.threadpool.start(predictor)

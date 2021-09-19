@@ -155,16 +155,13 @@
 
     function updateTime()
     {
+        var len = 270;
         if (g.QtMultimedia)
         {
-            var len = 0;
+            len = 0;
             for (var i = 0; i < videos.length; i++)
-                len += videos[i].duration / 16;
+                len += videos[i].duration / 20;
             len /= Math.max(videos.length, 1);
-        }
-        else
-        {
-            var len = 400;
         }
 
         var total = len * videoUrls.length;
@@ -261,7 +258,7 @@
             id: videoActions
             Layout.alignment: Qt.Bottom | Qt.AlignHCenter
             visible: false
-            spacing: Math.max(Math.min(300, parent.width - 260), 0)
+            spacing: Math.max(Math.min(100, parent.width / 2 - 260), 5)
 
             Button {
                 Layout.preferredWidth: 140;
@@ -275,7 +272,7 @@
 
                 Switch {
                     id: secondFolderSwitch
-                    x: parent.width + 5
+                    x: -60
 
                     onClicked: function() {
                         var TEXT_1 = qsTr("Add more videos"),
@@ -287,6 +284,11 @@
                             parent.text = TEXT_1;
                     }
                 }
+            }
+
+            Button {
+                text: qsTr("Add more classes")
+                onClicked: classPopup.open()
             }
 
 
@@ -328,6 +330,88 @@
         onRejected: {
             if (container.visible)
                 showReminder(qsTr("Video is required to continue!"));
+        }
+    }
+
+    Popup {
+        id: classPopup
+        parent: Overlay.overlay
+        modal: true
+
+        x: Math.round((parent.width - width) / 2)
+        y: Math.round((parent.height - height) / 5)
+        padding: 20
+
+        closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutsideParent
+
+        ColumnLayout
+        {
+            width: parent.width
+            Text {
+                text: qsTr("Labels modification")
+                Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+                color: textColor
+                font.pixelSize: 22
+                font.bold: true
+            }
+
+            Text {
+                text: "Labels count: 51"
+                Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+                color: textColor
+                font.pixelSize: 18
+                font.italic: true
+            }
+            RowLayout
+            {
+                spacing: 10
+                TextField {
+                    id: labelSetField
+                    text: "default"
+                    readOnly: true
+                    color: textColor
+                }
+
+                Button
+                {
+                    Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+                    text: "Load set"
+                }
+            }
+
+            RowLayout
+            {
+                spacing: 10
+                TextField {
+                    id: labelField
+                    placeholderText: "Label name"
+                    readOnly: false
+                    color: textColor
+                }
+
+                Button
+                {
+                    Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+                    text: "Add label"
+                }
+            }
+
+            RowLayout
+            {
+                spacing: 10
+                TextField {
+                    id: newLabelSetField
+                    placeholderText: "Set name"
+                    readOnly: false
+                    color: textColor
+                }
+
+                Button
+                {
+                    Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+                    text: "Save set"
+                }
+            }
         }
     }
 
@@ -642,6 +726,7 @@
         onProgress:
         {
             progress.value = fraction;
+            processingTime.text = timeLeftText;
         }
     }
 }
