@@ -41,7 +41,7 @@ Then, in the main menu, when you press process button the processing menu will a
 
 ![Processing menu](docs/processing.png)
 
-There you can find compromise between accuracy/performance and choose the file, in which you want to dump predictions. The file is in CSV format. After you press OK button, the progress bar will be shown and the entire app will be blocked. So wait, and try not to kill the application. The prediction of the processing time might be slightly inaccurate.
+There you can find compromise between accuracy/performance and choose the file, in which you want to dump predictions. The file is in CSV format. After you press OK button, the progress bar will be shown and the entire app will be blocked. So wait, and try not to kill the application. The prediction of the processing time might be slightly inaccurate. The most accurate choice will process one video in about one minute. Obviously, it is better to choose higher accuracy, if you want higher accuracy :)
 
 ![Processing menu with progress bar](docs/processing-in-progress.png)
 
