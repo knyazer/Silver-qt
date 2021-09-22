@@ -15,7 +15,7 @@ Install PyQt5.3+ with additional multimedia part on your own, as usually multime
 ```
 sudo apt install -y qt5-default pyqt5-devlibqt5multimedia5-plugins qml-module-qtmultimedia qml-module-qt-labs-settings libqt5multimedia5-plugins
 ```
-Also, there is added part which checks whether you have multimedia installed, and if not the app will merely have limited functionality
+Also, there is added part which checks whether you have multimedia installed, and if not the app will merely have limited functionality. (Ubuntu is recommended to use, as the app have not been tested on other platforms, but you can try to run it on your own risk)
 ### Instructions
 On the first screen you can see settings icon in the top right corner and upload button in the center of the screen. Also there is a switch, which enables automatic traversal of folders, so it will automatically upload all videos in that folder and its subfolders.
 
@@ -41,7 +41,7 @@ Then, in the main menu, when you press process button the processing menu will a
 
 ![Processing menu](docs/processing.png)
 
-There you can find compromise between accuracy/performance and choose the file, in which you want to dump predictions. The file is in CSV format. After you press OK button, the progress bar will be shown and the entire app will be blocked. So wait, and try not to kill the application. The prediction of the processing time might be slightly inaccurate. The most accurate choice will process one video in about one minute. Obviously, it is better to choose higher accuracy, if you want higher accuracy :)
+There you can find compromise between accuracy/performance and choose the file, in which you want to dump predictions. The file is in CSV format. After you press OK button, the progress bar will be shown and the dynamically calculated time will be printed. The most accurate choice will process one video in about one minute. Obviously, it is better to choose higher accuracy, if you want higher accuracy :)
 
 ![Processing menu with progress bar](docs/processing-in-progress.png)
 
