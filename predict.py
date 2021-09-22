@@ -302,8 +302,12 @@ def latents2pred(latents):
 labels = []
 with open("src/labels.txt", "r") as f:
     s = f.read()
-    for line in s.split("\n"):
-        labels.append(line.split(" ")[0])
+    labels = s.split("\n")
+labels = labels[:-1]
+
+CLASSIFIER = {}
+for i in range(51):
+    CLASSIFIER[labels[i]] = {labels[i]: 1}
 
 def toLabel(num):
     try:
@@ -311,9 +315,18 @@ def toLabel(num):
     except Exception as e:
         return num
 
+def pseudo(name):
+    for key in CLASSIFIER[name].keys():
+        if np.random.random() < CLASSIFIER[name][key]:
+            return key
+    return name
+
 def predict(url, step=2):
+    global labels
     seq = vid2seq_mod(url)
     crops = seq2crops(seq, step=step)
     latents = crops2latents(crops)
     num = int(latents2pred(latents))
+    lb = pseudo(toLabel(num))
+    num = labels.index(lb)
     return num, toLabel(num)

@@ -333,6 +333,19 @@
         }
     }
 
+    FileDialog {
+        id: labelFolderDialog
+        title: qsTr("Choose set")
+        folder: shortcuts.home
+        selectMultiple: false
+        selectFolder: true
+        onAccepted: {
+            console.log("Your choice is: " + fileUrls);
+            additionProgress.visible = true;
+            g.addLabel(labelField.text, fileUrls[0]);
+        }
+    }
+
     Popup {
         id: classPopup
         parent: Overlay.overlay
@@ -357,26 +370,11 @@
 
             Text {
                 text: "Labels count: 51"
+                id: labelsCountText
                 Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
                 color: textColor
                 font.pixelSize: 18
                 font.italic: true
-            }
-            RowLayout
-            {
-                spacing: 10
-                TextField {
-                    id: labelSetField
-                    text: "default"
-                    readOnly: true
-                    color: textColor
-                }
-
-                Button
-                {
-                    Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
-                    text: "Load set"
-                }
             }
 
             RowLayout
@@ -393,23 +391,32 @@
                 {
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
                     text: "Add label"
+
+                    onClicked:
+                    {
+                        labelFolderDialog.open();
+                    }
                 }
             }
 
-            RowLayout
+            ProgressBar
             {
-                spacing: 10
-                TextField {
-                    id: newLabelSetField
-                    placeholderText: "Set name"
-                    readOnly: false
-                    color: textColor
-                }
+                id: additionProgress
 
-                Button
+                from: 0
+                to: 1
+
+                visible: false
+            }
+
+            Button
+            {
+                Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
+
+                text: "Close"
+                onClicked:
                 {
-                    Layout.alignment: Qt.AlignHCenter | Qt.AlignTop
-                    text: "Save set"
+                    classPopup.close()
                 }
             }
         }
@@ -715,17 +722,29 @@
         // Finished signal handler
         onFinished:
         {
-            for (var i = 0; i < videoTexts.length; i++)
-                videoTexts[i].text = results[i];
+            if (results.length !== 0)
+            {
+                for (var i = 0; i < videoTexts.length; i++)
+                    videoTexts[i].text = results[i];
 
-            progress.visible = false;
-            popup.close();
+                progress.visible = false;
+                popup.close();
+            }
+            else
+            {
+                additionProgress.visible = false;
+                additionProgress.value = 0;
+            }
         }
 
         // Progress signal handler
         onProgress:
         {
             progress.value = fraction;
+            additionProgress.value = fraction;
+
+            labelsCountText.text = "Labels count: " + g.labelsSize();
+
             processingTime.text = timeLeftText;
         }
     }

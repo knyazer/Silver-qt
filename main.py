@@ -2,7 +2,7 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtQml import QQmlApplicationEngine
 from PyQt5.QtCore import QUrl, QObject, pyqtSignal, QThreadPool, QRunnable
 from PyQt5 import QtCore
-from predict import VID_FORMATS, predict
+from predict import VID_FORMATS, predict, labels, CLASSIFIER
 import math
 import glob
 import os
@@ -39,7 +39,7 @@ class Predictor(QRunnable):
 
     @QtCore.pyqtSlot()
     def run(self):
-        global PREDICTOR_EXIT
+        global PREDICTOR_EXIT, labels
         predictions = []
         i = 0
         beg = time.time()
@@ -93,13 +93,111 @@ class Predictor(QRunnable):
 
         self.output.emit(predictions)
 
+class Labeler(QRunnable):
+    def __init__(self, name, path, prg, out):
+        super().__init__()
+        self.name = name
+        self.urls = traverse_folder(path)
+        self.progress = prg
+        self.output = out
+
+    @QtCore.pyqtSlot()
+    def run(self):
+        global PREDICTOR_EXIT
+        predictions = []
+        i = 0
+        beg = time.time()
+        passed = 0
+        for url in self.urls:
+            try:
+                predictions.append(predict(url[7:], step=8))
+            except Exception as e:
+                predictions.append((-1, -1))
+
+            if PREDICTOR_EXIT:
+                PREDICTOR_EXIT = False
+                return
+
+            i += 1
+            passed = time.time() - beg
+            if i > 1:
+                k = 0.7 + (float(i) / float(len(self.urls))) * 0.3
+                leftSecs = int(round(((passed / i) * (len(self.urls) - i))) * k + leftSecs * (1 - k))
+            else:
+                leftSecs = int(round(0.8 * (passed / i) * (len(self.urls) - i)))
+
+            leftText = ""
+            if leftSecs < 90:
+                leftText = f"{leftSecs} seconds left"
+            else:
+                leftText = f"{leftSecs//60} minutes left"
+
+            self.progress.emit(float(i) / float(len(self.urls)), leftText)
+
+        for i in range(len(predictions)):
+            predictions[i] = predictions[i][1]
+            if PREDICTOR_EXIT:
+                PREDICTOR_EXIT = False
+                return
+
+        if PREDICTOR_EXIT:
+            PREDICTOR_EXIT = False
+            return
+
+        labels.append(self.name)
+        global CLASSIFIER
+        counts = {i:predictions.count(i) for i in predictions}
+        for i in range(len(labels)):
+            if labels[i] in counts.keys() and i <= 50:
+                p = float(counts[labels[i]]) / len(self.urls)
+                pp = p / (len(CLASSIFIER[labels[i]].keys()) + 1)
+                for key in CLASSIFIER[labels[i]].keys():
+                    CLASSIFIER[labels[i]][key] *= (1 - pp)
+                CLASSIFIER[labels[i]][labels[len(labels) - 1]] = pp
+
+        #print(labels)
+        #print(CLASSIFIER)
+        self.output.emit([])
+
+def traverse_folder(url):
+    filenames = []
+    for format in VID_FORMATS:
+        for filename in glob.iglob(url[7:] + f"/**/*.{format}", recursive=True):
+            filenames.append('file://' + filename)
+    return filenames
+
 class App(QObject):
     def __init__(self):
         super().__init__()
         self.threadpool = QThreadPool()
 
+        self.labelFileName = "labels.txt"
+        self.setFileName = "set.npy"
+        self.modelFileName = "lstm.onnx"
+
     finished = pyqtSignal(list, arguments=['results'])
     progress = pyqtSignal([float, str], arguments=['fraction', 'timeLeftText'])
+
+    @QtCore.pyqtSlot(str, result=bool)
+    def correctSetFolder(self, path):
+        labelFileExists = False
+        setFileExists = False
+
+        for filename in glob.glob(f"sets/{path}/*"):
+            name = filename.split("/")[-1]
+            if name == self.labelFileName:
+                labelFileExists = True
+
+            if name == self.setFileName:
+                setFileExists = True
+
+        return setFileExists and labelFileExists
+
+    @QtCore.pyqtSlot(str, str)
+    def addLabel(self, labelName, imagesFolder):
+        self.progress.emit(0.04, "")
+        labeler = Labeler(labelName, imagesFolder, self.progress, self.finished)
+        self.threadpool.start(labeler)
 
     @QtCore.pyqtSlot(float, float, result=int)
     def estimatedProcessingTime(self, framesN, perf):
@@ -109,6 +207,11 @@ class App(QObject):
     @QtCore.pyqtSlot(str)
     def output(self, s):
         print("gotcha:" + s)
+
+    @QtCore.pyqtSlot(result=str)
+    def labelsSize(self):
+        global labels
+        return str(len(labels))
 
     @QtCore.pyqtSlot(list, bool, str, result=list)
     def process(self, urls, doDump, fileName):
@@ -123,11 +226,7 @@ class App(QObject):
 
     @QtCore.pyqtSlot(str, result=list)
     def traverse(self, url):
-        filenames = []
-        for format in VID_FORMATS:
-            for filename in glob.iglob(url[7:] + f"/**/*.{format}", recursive=True):
-                filenames.append('file://' + filename)
-        return filenames
+        return traverse_folder(url)
 
     @QtCore.pyqtProperty(bool)
     def QtMultimedia(self):
