@@ -25,11 +25,19 @@ When you press on the settings icon, the screen with global settings will appear
 
 ![Settings screen](docs/settings.png)
 
-After you chose videos, the main screen will be opened. If you have installed multimedia library all videos will be interactive, otherwise there are gonna be just static images. You can click on trash icon to remove particular video. And you cann add more videos using button in the bottom.
+After you chose videos, the main screen will be opened. If you have installed multimedia library all videos will be interactive, otherwise there are gonna be just static images. You can click on trash icon to remove particular video. And you can add more videos using button in the bottom.
 
 ![Main screen](docs/main.png)
 
-Then, when you press process button the processing menu will appear
+If you press the "Add label" button, the label addition menu will appear. You can choose any name of the label you want. IMPORTANT: firstly choose the name, and only then press the button. And, in folder dialog which will appear you chould choose the folder, in which all the video files are lying.
+
+![Label menu](docs/modif1.png)
+
+After that, the progress bar will appear, and after finish of the processing the number on the top of the popup will increase by one.
+
+![Label menu](docs/modif2.png)
+
+Then, in the main menu, when you press process button the processing menu will appear
 
 ![Processing menu](docs/processing.png)
 
@@ -37,6 +45,6 @@ There you can find compromise between accuracy/performance and choose the file, 
 
 ![Processing menu with progress bar](docs/processing-in-progress.png)
 
-And, after finishing of the processing, the labels will appear on thumbnails and chosen CSV file will be written
+And, after finishing of the processing, the labels will appear on thumbnails and chosen CSV file will be written. The xxx is an artificially added class with index 51. IMPORTANT: if you want to get the best accuracy, do not use label addition, as it could decrease the overall accuracy. We are working on the fast and accurate label addition.
 
-![Main page with labels](docs/processed.png)
+![Main page with labels](docs/done.png)
