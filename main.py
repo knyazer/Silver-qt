@@ -230,6 +230,7 @@ class App(QObject):
 
     @QtCore.pyqtProperty(bool)
     def QtMultimedia(self):
+        return False
         try:
             from PyQt5 import QtMultimedia
             return True
