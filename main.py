@@ -213,7 +213,7 @@ class App(QObject):
         global labels
         return str(len(labels))
 
-    @QtCore.pyqtSlot(list, bool, str, result=list)
+    @QtCore.pyqtSlot(list, bool, str)
     def process(self, urls, doDump, fileName):
         self.progress.emit(0, "Processing begins")
 
