@@ -294,7 +294,10 @@ def crops2latents(crops):
     return res
 def latents2pred(latents):
     sess = rt.InferenceSession(f"{ONNX_PATH}/lstm.onnx")
-    latents = np.array(latents)
+    latents = np.array(latents, dtype=np.float32)
+    if (len(latents) == 0):
+        print("None")
+        return -1
     pred = sess.run([sess.get_outputs()[0].name], {sess.get_inputs()[0].name: latents.reshape((1, len(latents), 64))})[0]
     return np.argmax(pred)
 
@@ -327,6 +330,10 @@ def predict(url, step=2):
     crops = seq2crops(seq, step=step)
     latents = crops2latents(crops)
     num = int(latents2pred(latents))
+
+    if num == -1:
+        return -1, "а"
+
     lb = pseudo(toLabel(num))
     num = labels.index(lb)
     return num, toLabel(num)

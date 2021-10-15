@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QApplication
 from PyQt5.QtQml import QQmlApplicationEngine
 from PyQt5.QtCore import QUrl, QObject, pyqtSignal, QThreadPool, QRunnable
-from PyQt5 import QtCore
+from PyQt5 import QtCore, QtGui
 from predict import VID_FORMATS, predict, labels, CLASSIFIER
 import math
 import glob
@@ -13,7 +13,7 @@ import time
 
 os.environ["QT_QUICK_CONTROLS_STYLE"] = "Material"
 
-def make_thumbnail(inp, out):
+def make_thumbnail(inp):
     cap = cv.VideoCapture(inp)
     _, img = cap.read()
     if _ == False:
@@ -22,7 +22,8 @@ def make_thumbnail(inp, out):
         f = 480.0 / max(img.shape[0], img.shape[1])
         img = cv.resize(img, None, fx=f, fy=f)
 
-    cv.imwrite(out, img)
+    cv.imwrite("temp/thumbnail0.jpg", img)
+    cv.imwrite("temp/thumbnail1.jpg", img)
     cap.release()
 
 PREDICTOR_EXIT = False
@@ -39,19 +40,26 @@ class Predictor(QRunnable):
 
     @QtCore.pyqtSlot()
     def run(self):
-        global PREDICTOR_EXIT, labels
+        global PREDICTOR_EXIT, labels, PREV_FINISHED
+        PREV_FINISHED = False
         predictions = []
         i = 0
         beg = time.time()
         passed = 0
         for url in self.urls:
-            try:
-                predictions.append(predict(url[7:], step=self.step))
-            except Exception as e:
-                predictions.append((-1, -1))
+            print(url)
+            url = url[8:]
+            print(url)
+
+            if url[1] == ":":
+                url = url[0] + url[1] + "\\" + url[3:]
+                print(url)
+
+            predictions.append(predict(url, step=self.step))
 
             if PREDICTOR_EXIT:
                 PREDICTOR_EXIT = False
+                PREV_FINISHED = True
                 return
 
             i += 1
@@ -79,16 +87,29 @@ class Predictor(QRunnable):
                     writer.writerow([url, pred[0], pred[1]])
                     if PREDICTOR_EXIT:
                         PREDICTOR_EXIT = False
+                        PREV_FINISHED = True
                         return
 
         for i in range(len(predictions)):
-            predictions[i] = predictions[i][1]
+            print(predictions[i][0])
+            if predictions[i][0] != -1:
+                predictions[i] = predictions[i][1]
+            else:
+                predictions[i] = ""
+
             if PREDICTOR_EXIT:
                 PREDICTOR_EXIT = False
+                PREV_FINISHED = True
                 return
 
         if PREDICTOR_EXIT:
             PREDICTOR_EXIT = False
+            PREV_FINISHED = True
+            return
+
+        PREV_FINISHED = True
+
+        if ASYNC_PROCESS and predictions[0] == "":
             return
 
         self.output.emit(predictions)
@@ -135,7 +156,11 @@ class Labeler(QRunnable):
             self.progress.emit(float(i) / float(len(self.urls)), leftText)
 
         for i in range(len(predictions)):
-            predictions[i] = predictions[i][1]
+            if predictions[i][0] != -1:
+                predictions[i] = predictions[i][1]
+            else:
+                predictions[i] = ""
+
             if PREDICTOR_EXIT:
                 PREDICTOR_EXIT = False
                 return
@@ -166,10 +191,90 @@ def traverse_folder(url):
             filenames.append('file://' + filename)
     return filenames
 
+
+STREAMING = True
+ASYNC_PROCESS = False
+PREV_FINISHED = True
+
+class Capture(QRunnable):
+    def __init__(self, index, signal, thread, finish, progress):
+        super().__init__()
+        self.index = index
+        self.signal = signal
+        self.thread = thread
+        self.finish = finish
+        self.progress = progress
+
+    @QtCore.pyqtSlot()
+    def run(self):
+        global STREAMING, ASYNC_PROCESS, PREV_FINISHED
+        self.cap = cv.VideoCapture(self.index)
+
+        success = True
+        count = 0
+        vid_num = 0
+        out = cv.VideoWriter(f'temp/out_{vid_num}.mp4',cv.VideoWriter_fourcc('M','P','4','V'), 20, (640,480))
+
+        while STREAMING and success:
+            success, pic = self.cap.read()
+            cv.imwrite("temp/frame0.jpg", pic)
+            cv.imwrite("temp/frame1.jpg", pic)
+
+            if ASYNC_PROCESS:
+                if count < 70:
+                    out.write(pic)
+                    count += 1
+
+                if count >= 70 and PREV_FINISHED:
+                    out.release()
+                    count = 0
+                    vid_num += 1
+                    out = cv.VideoWriter(f'temp/out_{vid_num}.mp4',cv.VideoWriter_fourcc('M','P','4','V'), 20,(640,480))
+                    self.thread.start(Predictor([f'file:///temp/out_{vid_num - 1}.mp4'], False, "", 3, self.finish, self.progress))
+                    PREV_FINISHED = False
+
+
+            self.signal.emit()
+
+            cv.waitKey(25)
+
+        self.cap.release()
+
+class Thumbnail(QRunnable):
+    def __init__(self, url, signal):
+        super().__init__()
+        self.signal = signal
+        self.url = url
+
+    @QtCore.pyqtSlot()
+    def run(self):
+        global STREAMING
+        self.cap = cv.VideoCapture(self.url)
+
+        success = True
+        while STREAMING and success:
+            for i in range(4):
+                success, pic = self.cap.read()
+                if not STREAMING or not success:
+                    break
+
+            if not STREAMING or not success:
+                break
+
+            cv.imwrite("temp/thumbnail0.jpg", pic)
+            cv.imwrite("temp/thumbnail1.jpg", pic)
+
+            self.signal.emit()
+
+            cv.waitKey(20)
+
+        self.cap.release()
+
 class App(QObject):
     def __init__(self):
         super().__init__()
         self.threadpool = QThreadPool()
+        self.threadpoolProcess = QThreadPool()
 
         self.labelFileName = "labels.txt"
         self.setFileName = "set.npy"
@@ -177,6 +282,8 @@ class App(QObject):
 
     finished = pyqtSignal(list, arguments=['results'])
     progress = pyqtSignal([float, str], arguments=['fraction', 'timeLeftText'])
+    imageSync = pyqtSignal()
+    thumbnailSync = pyqtSignal()
 
     @QtCore.pyqtSlot(str, result=bool)
     def correctSetFolder(self, path):
@@ -197,7 +304,20 @@ class App(QObject):
     def addLabel(self, labelName, imagesFolder):
         self.progress.emit(0.04, "")
         labeler = Labeler(labelName, imagesFolder, self.progress, self.finished)
-        self.threadpool.start(labeler)
+        self.threadpoolProcess.start(labeler)
+
+    @QtCore.pyqtSlot(int)
+    def stream(self, index):
+        global STREAMING
+        STREAMING = True
+
+        cap = Capture(index, self.imageSync, self.threadpoolProcess, self.finished, self.progress)
+        self.threadpool.start(cap)
+
+    @QtCore.pyqtSlot()
+    def stopStream(self):
+        global STREAMING
+        STREAMING = False
 
     @QtCore.pyqtSlot(float, float, result=int)
     def estimatedProcessingTime(self, framesN, perf):
@@ -217,8 +337,8 @@ class App(QObject):
     def process(self, urls, doDump, fileName):
         self.progress.emit(0, "Processing begins")
 
-        predictor = Predictor(urls, doDump, fileName, self.step, self.finished, self.progress)
-        self.threadpool.start(predictor)
+        predictor = Predictor(urls, doDump, fileName, 5, self.finished, self.progress)
+        self.threadpoolProcess.start(predictor)
 
     @QtCore.pyqtSlot()
     def stopProcessing(self):
@@ -228,21 +348,37 @@ class App(QObject):
     def traverse(self, url):
         return traverse_folder(url)
 
-    @QtCore.pyqtProperty(bool)
-    def QtMultimedia(self):
-        return False
-        try:
-            from PyQt5 import QtMultimedia
-            return True
-        except ImportError as e:
-            return False
+    @QtCore.pyqtSlot(str)
+    def makeThumbnail(self, video_url):
+        global STREAMING
+        STREAMING = True
 
-    @QtCore.pyqtSlot(str, str)
-    def makeThumbnail(self, video_url, image_path):
-        return make_thumbnail(video_url[7:], 'temp/' + image_path)
+        gen = Thumbnail(video_url[7:], self.thumbnailSync)
+        self.threadpool.start(gen)
+
+    @QtCore.pyqtSlot()
+    def asyncProcess(self):
+        global ASYNC_PROCESS
+        ASYNC_PROCESS = True
+
+    @QtCore.pyqtSlot()
+    def stopAsync(self):
+        global ASYNC_PROCESS
+        ASYNC_PROCESS = False
+
+
+
+def close(*args, **kwargs):
+    global STREAMING
+
+    STREAMING = False
+
+    print("Close and stop everything")
 
 
 app = QApplication(["Silver"])
+app.setWindowIcon(QtGui.QIcon("src/icons/icon.jpg"))
+app.setApplicationName("Silver Translator")
 app.setOrganizationName("K")
 app.setOrganizationDomain("K")
 
@@ -250,11 +386,10 @@ view = QQmlApplicationEngine()
 url = QUrl("src/qml/main.qml")
 
 g = App()
-
+app.aboutToQuit.connect(close)
 context = view.rootContext()
 context.setContextProperty("g", g)
 
 view.load(url)
-
 
 app.exec()
