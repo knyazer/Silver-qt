@@ -301,9 +301,9 @@ def latents2pred(latents):
     pred = sess.run([sess.get_outputs()[0].name], {sess.get_inputs()[0].name: latents.reshape((1, len(latents), 64))})[0]
     return np.argmax(pred)
 
-
+import io
 labels = []
-with open("src/labels.txt", "r") as f:
+with io.open("src/labels.txt", mode="r", encoding="utf-8") as f:
     s = f.read()
     labels = s.split("\n")
 labels = labels[:-1]

@@ -14,7 +14,7 @@ ApplicationWindow {
             return;
         }
 
-        g.stream(1);
+        g.stream(0);
         console.log("Streaming");
 
         inputControls.visible = false;
