@@ -4,6 +4,6 @@ plyer
 glob2
 tqdm
 onnxruntime
-opencv-python==4.1.2.30
+opencv-python
 PyQt5
 numpy
