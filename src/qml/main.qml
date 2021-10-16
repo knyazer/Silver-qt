@@ -224,7 +224,7 @@ ApplicationWindow {
                             color: videoTranslation.down ? "#ddd" : (videoTranslation.hovered ? "#aaa" : borderCl)
                             radius: 5
                     }
-
+                    
                     onClicked: fileDialog.open();
                 }
 
