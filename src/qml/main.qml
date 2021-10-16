@@ -73,7 +73,7 @@ ApplicationWindow {
         }
 
 
-        if (output.text === "Перевод")
+        if (output.text === "Перевод" || output.text === "...")
             output.text = "";
 
         progress.visible = true;
