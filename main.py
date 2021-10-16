@@ -11,6 +11,18 @@ import csv
 import cv2 as cv
 import numpy as np
 import time
+import io
+
+CAMERA_INDEX = 0
+
+try:
+    print("try to init camera")
+    with io.open("camera.txt", mode="r", encoding="utf-8") as f:
+        s = f.read()
+    print(s)
+    CAMERA_INDEX = int(s)
+except Exception as e:
+    CAMERA_INDEX = 0
 
 os.environ["QT_QUICK_CONTROLS_STYLE"] = "Material"
 
@@ -316,12 +328,12 @@ class App(QObject):
         labeler = Labeler(labelName, imagesFolder, self.progress, self.finished)
         self.threadpoolProcess.start(labeler)
 
-    @QtCore.pyqtSlot(int)
-    def stream(self, index):
-        global STREAMING
+    @QtCore.pyqtSlot()
+    def stream(self):
+        global STREAMING, CAMERA_INDEX
         STREAMING = True
 
-        cap = Capture(index, self.imageSync, self.threadpoolProcess, self.finished, self.progress)
+        cap = Capture(CAMERA_INDEX, self.imageSync, self.threadpoolProcess, self.finished, self.progress)
         self.threadpool.start(cap)
 
     @QtCore.pyqtSlot()
