@@ -239,9 +239,13 @@ class Capture(QRunnable):
             success, pic = self.cap.read()
             if pic is None or len(pic) == 0:
                 continue
+            try:
+                cv.imwrite("temp/frame0.jpg", pic)
+                cv.imwrite("temp/frame1.jpg", pic)
 
-            cv.imwrite("temp/frame0.jpg", pic)
-            cv.imwrite("temp/frame1.jpg", pic)
+            except Exception as e:
+                print("oops")
+                continue
 
             if ASYNC_PROCESS:
                 if count < 70:
