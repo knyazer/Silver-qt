@@ -117,6 +117,8 @@ class Predictor(QRunnable):
 
         if ASYNC_PROCESS and predictions[0] == "":
             return
+        if not ASYNC_PROCESS and self.ignorePadding:
+            return
 
         self.output.emit(predictions)
 

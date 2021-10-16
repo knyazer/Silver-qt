@@ -54,22 +54,22 @@ ApplicationWindow {
         progress.visible = false;
         g.stopAsync();
         progress.visible = false;
+        inputType = "";
     }
 
     function clearOutput()
     {
         output.text = "Перевод";
         eraseOutput.visible = false;
-        g.stopAsync();
-        progress.visible = false;
     }
 
     function translate()
     {
-        if (inputType === "camera" && progress.visible === true)
+        if (inputType === "")
         {
-            progress.visible = false;
-            g.stopAsync();
+            output.text = "...";
+            eraseOutput.visible = true;
+            return;
         }
 
 
@@ -86,12 +86,23 @@ ApplicationWindow {
         if (inputType == "camera")
         {
             g.asyncProcess();
+
+            cameraStop.visible = true;
+            process.visible = false;
         }
     }
 
-    property string bg: "#999999"
-    property string silver: "#828282"
-    property string borderCl: "#909090"
+    function stopTranslation()
+    {
+        cameraStop.visible = false;
+        progress.visible = false;
+        process.visible = true;
+        g.stopAsync();
+    }
+
+    property string bg: "#aaa"
+    property string silver: "#959595"
+    property string borderCl: "#a1a1a1"
     property string inputUrl: ""
     property string inputType: ""
     property bool cameraAccept: false
@@ -100,45 +111,54 @@ ApplicationWindow {
     visible: true
     width: 640
     height: 480
-    minimumHeight: 400
+    minimumHeight: 420
     minimumWidth: 500
-
-    //Material.theme: Material.Dark // or Material.Light
-    //Material.accent: Material.BlueGrey
 
     color: bg
 
     font.capitalization: Font.MixedCase
-    MessageDialog {
+    Dialog {
         id: cameraAccess
-        title: "Разрешение на доступ к камере"
-        text: "Вы разрешаете получить данному приложению доступ к камере?"
-        standardButtons: StandardButton.Yes | StandardButton.No
-        Component.onCompleted: visible = false
+        title: "Вы разрешаете получить данному приложению доступ к камере?"
+        visible: false
 
-        onYes:
-        {
-            console.log("continue");
-            cameraAccept = true;
+        x: (parent.width - width) / 2
+        y: (parent.height - height) / 2
 
-            useCamera();
+        DialogButtonBox {
+            Button {
+                text: "Да"
+                DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
+                onClicked:
+                {
+                    console.log("continue");
+                    cameraAccept = true;
+
+                    useCamera();
+
+                    cameraAccess.visible = false;
+                }
+            }
+            Button {
+                text: "Нет"
+                DialogButtonBox.buttonRole: DialogButtonBox.DestructiveRole
+
+                onClicked:
+                {
+                    cameraAccept = false;
+
+                    cameraAccess.visible = false;
+                }
+            }
         }
 
-        onNo:
-        {
-            cameraAccept = false;
-        }
-
-        onRejected:
-        {
-            cameraAccept = false;
-        }
     }
 
     RowLayout
     {
         anchors.fill: parent
-        anchors.margins: 20
+        anchors.margins: 15
+
         Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 
         Rectangle
@@ -152,7 +172,7 @@ ApplicationWindow {
             border.width: 2
 
             TabBar {
-                y: -48
+                y: -45
                 width: parent.width
                 background: Rectangle {
                     color: "#ccc"
@@ -216,6 +236,14 @@ ApplicationWindow {
                     icon.width: 60
                     icon.height: 60
 
+                    ToolTip{
+                            visible: videoTranslation.hovered
+                            delay: 100
+                            text: "Распознать жесты из видеофайла"
+                            font.family: "tahoma"
+                            timeout: 4000
+                     }
+
                     flat: true
 
                     background: Rectangle {
@@ -237,6 +265,14 @@ ApplicationWindow {
                     icon.source: "../icons/camera.png"
                     icon.width: 60
                     icon.height: 60
+
+                    ToolTip{
+                            visible: cameraTranslation.hovered
+                            delay: 100
+                            text: "Распознать жесты с видеокамеры"
+                            font.family: "tahoma"
+                            timeout: 4000
+                     }
 
                     flat: true
 
@@ -267,6 +303,16 @@ ApplicationWindow {
                 icon.width: 20
                 icon.height: 20
 
+                hoverEnabled: true
+
+                ToolTip{
+                        visible: eraseInput.hovered
+                        delay: 100
+                        text: "Очистить входные данные"
+                        font.family: "tahoma"
+                        timeout: 4000
+                 }
+
                 background: Rectangle {
                     implicitWidth: 30
                     implicitHeight: 30
@@ -281,14 +327,22 @@ ApplicationWindow {
 
         ColumnLayout
         {
-            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
             Button
             {
+                Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
                 id: process
 
                 icon.name: "process"
                 icon.source: "../icons/arrow.png"
                 flat: true
+
+                ToolTip{
+                        visible: process.hovered
+                        delay: 100
+                        text: "Запустить перевод"
+                        font.family: "tahoma"
+                        timeout: 4000
+                 }
 
                 background: Rectangle {
                         implicitWidth: 40
@@ -298,6 +352,37 @@ ApplicationWindow {
                 }
 
                 onClicked: translate()
+            }
+
+            Button
+            {
+                id: cameraStop
+
+                Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+                icon.name: "stop"
+                icon.source: "../icons/stop.png"
+
+                visible: false
+
+                flat: true
+
+                ToolTip{
+                        visible: cameraStop.hovered
+                        delay: 100
+                        text: "Остановить обработку видеопотока"
+                        font.family: "tahoma"
+                        timeout: 4000
+                 }
+
+                background: Rectangle {
+                        implicitWidth: 40
+                        implicitHeight: 40
+                        color: cameraStop.down ? "#ddd" : (cameraStop.hovered ? "#ccc" : "#bbb")
+                        radius: 5
+                }
+
+                onClicked: stopTranslation()
             }
         }
 
@@ -314,7 +399,7 @@ ApplicationWindow {
             border.width: 2
 
             TabBar {
-                y: -48
+                y: -45
                 id: bar
                 width: parent.width
 
@@ -347,7 +432,7 @@ ApplicationWindow {
                     wrapMode: Text.Wrap
                     padding: 10
                     font.family: "Roboto"
-                    font.pointSize: 22
+                    font.pointSize: 20
                     selectByMouse: true
                     readOnly: true
 
@@ -372,6 +457,14 @@ ApplicationWindow {
                 icon.width: 20
                 icon.height: 20
 
+                ToolTip{
+                        visible: eraseOutput.hovered
+                        delay: 100
+                        text: "Стереть переведенный текст"
+                        font.family: "tahoma"
+                        timeout: 4000
+                 }
+
                 background: Rectangle {
                     implicitWidth: 30
                     implicitHeight: 30
@@ -395,6 +488,15 @@ ApplicationWindow {
             }
         }
     }
+
+    footer:
+        Text {
+            Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+            padding: 1
+            font.pointSize: 10
+            font.family: "Roboto"
+            text: "v2.1.0. silver.aiijc@gmail.com"
+        }
 
     FileDialog {
         id: fileDialog
