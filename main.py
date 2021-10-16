@@ -237,6 +237,9 @@ class Capture(QRunnable):
 
         while STREAMING and success:
             success, pic = self.cap.read()
+            if pic is None or len(pic) == 0:
+                continue
+
             cv.imwrite("temp/frame0.jpg", pic)
             cv.imwrite("temp/frame1.jpg", pic)
 

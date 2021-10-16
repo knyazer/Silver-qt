@@ -495,7 +495,7 @@ ApplicationWindow {
             padding: 1
             font.pointSize: 10
             font.family: "Roboto"
-            text: "v2.1.0. silver.aiijc@gmail.com"
+            text: "v2.4.0. silver.aiijc@gmail.com"
         }
 
     FileDialog {
@@ -525,6 +525,9 @@ ApplicationWindow {
         {
             if (results.length === 1)
             {
+                if (output.text === "..." || output.text === "Перевод")
+                    output.text = "";
+
                 output.text += results[0] + " ";
                 eraseOutput.visible = true;
 
