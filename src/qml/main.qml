@@ -342,12 +342,14 @@ ApplicationWindow {
                 height: parent.height - 10
 
 
-                Text {
+                TextEdit {
                     width: translateArea.width - 15
                     wrapMode: Text.Wrap
                     padding: 10
                     font.family: "Roboto"
                     font.pointSize: 22
+                    selectByMouse: true
+                    readOnly: true
 
                     id: output
                     text: "Перевод"

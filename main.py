@@ -6,12 +6,15 @@ from predict import VID_FORMATS, predict, labels, CLASSIFIER
 import math
 import glob
 import os
+import platform
 import csv
 import cv2 as cv
 import numpy as np
 import time
 
 os.environ["QT_QUICK_CONTROLS_STYLE"] = "Material"
+
+WINDOWS = (platform.system() == "Windows")
 
 def make_thumbnail(inp):
     cap = cv.VideoCapture(inp)
@@ -29,7 +32,7 @@ def make_thumbnail(inp):
 PREDICTOR_EXIT = False
 
 class Predictor(QRunnable):
-    def __init__(self, urls, doDump, fileName, step, output, progress):
+    def __init__(self, urls, doDump, fileName, step, output, progress, padding=True):
         super().__init__()
         self.urls = urls
         self.doDump = doDump
@@ -37,6 +40,7 @@ class Predictor(QRunnable):
         self.output = output
         self.step = step
         self.progress = progress
+        self.ignorePadding = not padding
 
     @QtCore.pyqtSlot()
     def run(self):
@@ -47,9 +51,11 @@ class Predictor(QRunnable):
         beg = time.time()
         passed = 0
         for url in self.urls:
-            print(url)
-            url = url[8:]
-            print(url)
+            if not self.ignorePadding:
+                if WINDOWS:
+                    url = url[8:]
+                else:
+                    url = url[7:]
 
             if url[1] == ":":
                 url = url[0] + url[1] + "\\" + url[3:]
@@ -230,13 +236,15 @@ class Capture(QRunnable):
                     count = 0
                     vid_num += 1
                     out = cv.VideoWriter(f'temp/out_{vid_num}.mp4',cv.VideoWriter_fourcc('M','P','4','V'), 20,(640,480))
-                    self.thread.start(Predictor([f'file:///temp/out_{vid_num - 1}.mp4'], False, "", 3, self.finish, self.progress))
+                    self.thread.start(Predictor([f'temp/out_{vid_num - 1}.mp4'], False, "", 3, self.finish, self.progress, False))
                     PREV_FINISHED = False
 
 
+            time.sleep(0.001)
+            
             self.signal.emit()
 
-            cv.waitKey(25)
+            time.sleep(0.015)
 
         self.cap.release()
 
