@@ -233,7 +233,7 @@ class Capture(QRunnable):
         success = True
         count = 0
         vid_num = 0
-        out = cv.VideoWriter(f'temp/out_{vid_num}.mp4',cv.VideoWriter_fourcc('M','P','4','2'), 20, (640,480))
+        out = cv.VideoWriter(f'temp/out_{vid_num}.avi',cv.VideoWriter_fourcc('X','V','I','D'), 20, (640,480))
 
         while STREAMING and success:
             success, pic = self.cap.read()
@@ -256,8 +256,8 @@ class Capture(QRunnable):
                     out.release()
                     count = 0
                     vid_num += 1
-                    out = cv.VideoWriter(f'temp/out_{vid_num}.mp4',cv.VideoWriter_fourcc('M','P','4','V'), 20,(640,480))
-                    self.thread.start(Predictor([f'temp/out_{vid_num - 1}.mp4'], False, "", 3, self.finish, self.progress, False))
+                    out = cv.VideoWriter(f'temp/out_{vid_num}.avi',cv.VideoWriter_fourcc('X','V','I','D'), 20, (640,480))
+                    self.thread.start(Predictor([f'temp/out_{vid_num - 1}.avi'], False, "", 3, self.finish, self.progress, False))
                     PREV_FINISHED = False
 
 
