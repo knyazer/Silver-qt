@@ -4,6 +4,14 @@ Application for Russian Sign Language recognition
 ### Technologies
 + PyQT5+QML and ONNX models for inference;
 
+### How to test
+From the root of the repository:
+```
+import predict
+predict.predictTree(path_to_folder)
+```
+As a result you will get a file named "results.csv" with predictions for each file.
+
 ### Installation
 ```
 pip3 install -r requirements.txt
