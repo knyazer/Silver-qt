@@ -3,20 +3,12 @@ Application for Russian Sign Language recognition
 
 ### Technologies
 + PyQT5+QML and ONNX models for inference;
-+ Material style;
-+ Dark/Light color themes
-+ Russian/English languages (currently unavailable)
 
 ### Installation
 ```
 pip3 install -r requirements.txt
 ```
-Install PyQt5.3+ with additional multimedia part on your own, as usually multimedia does not provided in GPL Qt, eventhough it should be there. On linux (Ubuntu) you can simply install it using package manager, like so:
-```
-sudo apt install -y qt5-default qml-module-qtmultimedia qml-module-qt-labs-settings libqt5multimedia5-plugins
-```
-Also, there is added part which checks whether you have multimedia installed, and if not the app will merely have limited functionality. (Ubuntu is recommended to use, as the app have not been tested on other platforms, but you can try to run it on your own risk)
-### Instructions
+### Instructions (WARNING: V1.7.2; current is V2.4.0)
 On the first screen you can see settings icon in the top right corner and upload button in the center of the screen. Also there is a switch, which enables automatic traversal of folders, so it will automatically upload all videos in that folder and its subfolders.
 
 ![First screen](docs/first.png)
