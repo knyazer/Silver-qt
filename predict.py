@@ -337,3 +337,15 @@ def predict(url, step=2):
     lb = pseudo(toLabel(num))
     num = labels.index(lb)
     return num, toLabel(num)
+
+import csv
+def predictTree(url):
+    f = open('results.csv', 'w')
+    
+    with f:
+        writer = csv.writer(f)
+        for p in glob.glob(url + "/**/*.mp4", recursive=True):
+            x = predict(p, step=1)
+            print(p, x)
+            writer.writerow((p, x[0]))
+        
