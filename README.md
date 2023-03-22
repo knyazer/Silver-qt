@@ -39,6 +39,4 @@ When you simply click at the webcamera icon in the left area, the dialog about c
 
 ![Camera access](docs/permission.png)
 
-After answering "Yes" you would see your image from camera moving. To start translation you should press the translation button. Then the programm will automatically detects gestures(or signs) you show, and translate them. Here you could the very likeness of myself in front of webcam showing some random things :)
-
-![Some handsome guy](docs/webcam.png)
+After answering "Yes" you would see your image from camera moving. To start translation you should press the translation button. Then the programm will automatically detects gestures(or signs) you show, and translate them.
